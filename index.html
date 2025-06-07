@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yapay Zeka Web Sitesi Oluşturucu</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        /* [NOT: Stil (CSS) kodları birebir aynı olduğu için buraya eklenmedi, kendi dosyanızda olduğu gibi kalsın] */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        :root { --bg-color: #1a1a1a; --surface-color: #2c2c2c; --primary-color: #007bff; --primary-hover-color: #0056b3; --text-color: #f0f0f0; --border-color: #444; --success-color: #28a745; --error-color: #dc3545; --font-family: 'Inter', sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: var(--font-family); background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        header { padding: 1rem 2rem; background-color: var(--surface-color); border-bottom: 1px solid var(--border-color); text-align: center; }
+        header h1 { font-size: 1.5rem; font-weight: 600; }
+        header h1 span { color: var(--primary-color); }
+        main { display: flex; flex-grow: 1; overflow: hidden; }
+        .controls { width: 35%; min-width: 400px; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; background-color: var(--surface-color); overflow-y: auto; border-right: 1px solid var(--border-color); }
+        .control-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
+        textarea { width: 100%; height: 200px; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; color: var(--text-color); font-family: inherit; resize: vertical; transition: border-color 0.3s, box-shadow 0.3s; }
+        textarea:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25); }
+        .button-group { display: flex; gap: 1rem; }
+        .btn { flex-grow: 1; padding: 0.75rem 1rem; font-size: 1rem; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.3s, transform 0.1s; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-primary:hover { background-color: var(--primary-hover-color); }
+        .btn-secondary { background-color: #4f4f4f; color: white; }
+        .btn-secondary:hover { background-color: #6a6a6a; }
+        .btn:disabled { background-color: #555; cursor: not-allowed; opacity: 0.7; }
+        #status { padding: 0.75rem; border-radius: 8px; font-weight: 500; display: none; text-align: center; }
+        .status-success { background-color: var(--success-color); color: white; }
+        .status-error { background-color: var(--error-color); color: white; }
+        .status-loading { background-color: #6c757d; color: white; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        .output-area { flex-grow: 1; display: flex; flex-direction: column; background-color: var(--bg-color); }
+        .tabs { display: flex; background-color: var(--surface-color); }
+        .tab-btn { padding: 0.75rem 1.5rem; cursor: pointer; border: none; background-color: transparent; color: #aaa; font-size: 1rem; border-bottom: 3px solid transparent; transition: color 0.3s, border-color 0.3s; }
+        .tab-btn.active { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 600; }
+        .tab-content { flex-grow: 1; display: none; overflow: auto; }
+        .tab-content.active { display: block; }
+        #preview { width: 100%; height: 100%; border: none; background-color: white; }
+        #code-view-wrapper { height: 100%; background-color: #1e1e1e; padding: 1rem; }
+        #code-view { white-space: pre-wrap; word-wrap: break-word; color: #d4d4d4; font-family: 'Courier New', Courier, monospace; font-size: 0.9rem; }
+        @media (max-width: 768px) { main { flex-direction: column; } .controls { width: 100%; min-width: auto; height: 40vh; border-right: none; border-bottom: 1px solid var(--border-color); } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Yapay Zeka Web Sitesi Oluşturucu <span>&lt;/&gt;</span></h1>
+    </header>
+
+    <main>
+        <div class="controls">
+            <div class="control-group">
+                <label for="prompt">1. Nasıl bir web sitesi istediğinizi anlatın:</label>
+                <textarea id="prompt" placeholder="Örn: 'Siyah temalı, 3D bir küpün döndüğü bir portfolyo sitesi yap. Küpün üzerine gelince durmalı.'"></textarea>
+            </div>
+            
+            <div class="button-group">
+                <button id="generateBtn" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M11.596 8.697l-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/></svg>
+                    Oluştur / Güncelle
+                </button>
+                <button id="downloadBtn" class="btn btn-secondary" style="display: none;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+                    ZIP İndir
+                </button>
+            </div>
+
+            <div id="status"></div>
+        </div>
+
+        <div class="output-area">
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="preview-content">🖼️ Canlı Önizleme</button>
+                <button class="tab-btn" data-tab="code-content">⚙️ Kaynak Kodu</button>
+            </div>
+            <div id="preview-content" class="tab-content active">
+                <iframe id="preview" title="Web Sitesi Önizlemesi"></iframe>
+            </div>
+            <div id="code-content" class="tab-content">
+                <div id="code-view-wrapper">
+                   <pre><code id="code-view">// Oluşturulan kod burada görünecek...</code></pre>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const promptEl = document.getElementById('prompt');
+            const generateBtn = document.getElementById('generateBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const statusEl = document.getElementById('status');
+            const previewIframe = document.getElementById('preview');
+            const codeViewEl = document.getElementById('code-view');
+            const tabs = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            let lastGeneratedCode = '';
+
+            function updateStatus(message, type = 'loading') {
+                statusEl.textContent = message;
+                statusEl.className = `status-${type}`;
+                statusEl.style.display = 'block';
+            }
+            
+            function setControlsState(enabled) {
+                generateBtn.disabled = !enabled;
+                promptEl.disabled = !enabled;
+            }
+            
+            function cleanHtmlResponse(rawText) {
+                const match = rawText.match(/```(?:html|HTML)?\s*([\s\S]*?)\s*```/);
+                return match ? match[1].trim() : rawText.trim();
+            }
+
+            async function generateWebsite() {
+                const promptText = promptEl.value.trim();
+                if (!promptText) {
+                    updateStatus('Lütfen nasıl bir site istediğinizi yazın.', 'error');
+                    return;
+                }
+
+                setControlsState(false);
+                updateStatus('Güvenli sunucuya bağlanılıyor, yapay zeka düşünüyor...', 'loading');
+
+                const fullPrompt = `You are an expert web developer. Create a single, complete HTML file based on the user's request. Include all HTML, CSS (in a <style> tag), and JavaScript (in a <script> tag) in one file. The output must be ONLY the raw HTML code, starting with <!DOCTYPE html>. Do not add any explanations or markdown like \`\`\`html. The user's previous code was: \n\n${lastGeneratedCode}\n\nUser Request: ${promptText}`;
+
+                try {
+                    const response = await fetch('http://127.0.0.1:5000/generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt: fullPrompt })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || `HTTP Hatası: ${response.status}`);
+                    }
+
+                    const generatedText = data.candidates[0].content.parts[0].text;
+                    const cleanHtml = cleanHtmlResponse(generatedText);
+
+                    lastGeneratedCode = cleanHtml;
+                    previewIframe.srcdoc = cleanHtml;
+                    codeViewEl.textContent = cleanHtml;
+                    
+                    updateStatus('Web sitesi başarıyla oluşturuldu!', 'success');
+                    downloadBtn.style.display = 'flex';
+
+                } catch (error) {
+                    console.error('Hata:', error);
+                    updateStatus(`Bir hata oluştu: ${error.message}`, 'error');
+                } finally {
+                    setControlsState(true);
+                }
+            }
+            
+            function downloadZip() {
+                if (!lastGeneratedCode) {
+                    updateStatus('İndirilecek kod bulunamadı.', 'error');
+                    return;
+                }
+                const zip = new JSZip();
+                zip.file("index.html", lastGeneratedCode);
+                zip.generateAsync({type:"blob"}).then(content => {
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(content);
+                    link.download = "website.zip";
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                });
+            }
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    document.getElementById(tab.dataset.tab).classList.add('active');
+                });
+            });
+
+            generateBtn.addEventListener('click', generateWebsite);
+            downloadBtn.addEventListener('click', downloadZip);
+        });
+    </script>
+</body>
+</html>
