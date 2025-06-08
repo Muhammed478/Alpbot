@@ -6,7 +6,6 @@
     <title>Yapay Zeka Web Sitesi Oluşturucu</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        /* [NOT: Stil (CSS) kodları birebir aynı olduğu için buraya eklenmedi, kendi dosyanızda olduğu gibi kalsın] */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         :root { --bg-color: #1a1a1a; --surface-color: #2c2c2c; --primary-color: #007bff; --primary-hover-color: #0056b3; --text-color: #f0f0f0; --border-color: #444; --success-color: #28a745; --error-color: #dc3545; --font-family: 'Inter', sans-serif; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -39,9 +38,9 @@
         .tab-content { flex-grow: 1; display: none; overflow: auto; }
         .tab-content.active { display: block; }
         #preview { width: 100%; height: 100%; border: none; background-color: white; }
-        #code-view-wrapper { height: 100%; background-color: #1e1e1e; padding: 1rem; }
-        #code-view { white-space: pre-wrap; word-wrap: break-word; color: #d4d4d4; font-family: 'Courier New', Courier, monospace; font-size: 0.9rem; }
-        @media (max-width: 768px) { main { flex-direction: column; } .controls { width: 100%; min-width: auto; height: 40vh; border-right: none; border-bottom: 1px solid var(--border-color); } }
+        #code-view-wrapper { height: 100%; background-color: #1e1e1e; padding: 1rem; overflow: auto; }
+        #code-view { white-space: pre; word-wrap: break-word; color: #d4d4d4; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-size: 0.9rem; }
+        @media (max-width: 768px) { main { flex-direction: column; } .controls { width: 100%; min-width: auto; height: auto; max-height: 50vh; border-right: none; border-bottom: 1px solid var(--border-color); } }
     </style>
 </head>
 <body>
@@ -88,6 +87,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Gerekli HTML elementlerini seçiyoruz
             const promptEl = document.getElementById('prompt');
             const generateBtn = document.getElementById('generateBtn');
             const downloadBtn = document.getElementById('downloadBtn');
@@ -97,24 +97,29 @@
             const tabs = document.querySelectorAll('.tab-btn');
             const tabContents = document.querySelectorAll('.tab-content');
 
+            // Son oluşturulan kodu hafızada tutmak için bir değişken
             let lastGeneratedCode = '';
 
+            // Kullanıcıya durum bilgisi göstermek için bir fonksiyon
             function updateStatus(message, type = 'loading') {
                 statusEl.textContent = message;
                 statusEl.className = `status-${type}`;
                 statusEl.style.display = 'block';
             }
             
+            // Butonları ve giriş alanını aktif/pasif yapmak için bir fonksiyon
             function setControlsState(enabled) {
                 generateBtn.disabled = !enabled;
                 promptEl.disabled = !enabled;
             }
             
+            // API'den gelen cevabı temizlemek için bir fonksiyon
             function cleanHtmlResponse(rawText) {
                 const match = rawText.match(/```(?:html|HTML)?\s*([\s\S]*?)\s*```/);
                 return match ? match[1].trim() : rawText.trim();
             }
 
+            // Ana fonksiyon: Web sitesi oluşturma isteğini sunucuya gönderir
             async function generateWebsite() {
                 const promptText = promptEl.value.trim();
                 if (!promptText) {
@@ -128,21 +133,26 @@
                 const fullPrompt = `You are an expert web developer. Create a single, complete HTML file based on the user's request. Include all HTML, CSS (in a <style> tag), and JavaScript (in a <script> tag) in one file. The output must be ONLY the raw HTML code, starting with <!DOCTYPE html>. Do not add any explanations or markdown like \`\`\`html. The user's previous code was: \n\n${lastGeneratedCode}\n\nUser Request: ${promptText}`;
 
                 try {
-                    const response = await fetch('https://alpbot.onrender.com/', {
+                    // *** EN ÖNEMLİ DÜZELTME BURADA YAPILDI ***
+                    // İstek, sunucumuzun doğru adresi olan '/generate' endpoint'ine gönderiliyor.
+                    const response = await fetch('https://alpbot.onrender.com/generate', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ prompt: fullPrompt })
                     });
 
+                    if (!response.ok) {
+                        const data = await response.json().catch(() => ({}));
+                        throw new Error(data.error || `Sunucudan Hata Geldi: ${response.status}`);
+                    }
+                    
                     const data = await response.json();
 
-                    if (!response.ok) {
-                        throw new Error(data.error || `HTTP Hatası: ${response.status}`);
-                    }
-
+                    // Gelen cevaptan asıl kodu ayıklıyoruz
                     const generatedText = data.candidates[0].content.parts[0].text;
                     const cleanHtml = cleanHtmlResponse(generatedText);
 
+                    // Sonuçları ekrana basıyoruz
                     lastGeneratedCode = cleanHtml;
                     previewIframe.srcdoc = cleanHtml;
                     codeViewEl.textContent = cleanHtml;
@@ -158,6 +168,7 @@
                 }
             }
             
+            // Oluşturulan kodu ZIP olarak indirme fonksiyonu
             function downloadZip() {
                 if (!lastGeneratedCode) {
                     updateStatus('İndirilecek kod bulunamadı.', 'error');
@@ -175,6 +186,7 @@
                 });
             }
 
+            // Tab (sekme) değiştirme mantığı
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
                     tabs.forEach(t => t.classList.remove('active'));
@@ -184,6 +196,7 @@
                 });
             });
 
+            // Butonlara tıklama olaylarını bağlıyoruz
             generateBtn.addEventListener('click', generateWebsite);
             downloadBtn.addEventListener('click', downloadZip);
         });
