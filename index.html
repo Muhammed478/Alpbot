@@ -128,7 +128,7 @@
                 const fullPrompt = `You are an expert web developer. Create a single, complete HTML file based on the user's request. Include all HTML, CSS (in a <style> tag), and JavaScript (in a <script> tag) in one file. The output must be ONLY the raw HTML code, starting with <!DOCTYPE html>. Do not add any explanations or markdown like \`\`\`html. The user's previous code was: \n\n${lastGeneratedCode}\n\nUser Request: ${promptText}`;
 
                 try {
-                    const response = await fetch('http://127.0.0.1:5000/generate', {
+                    const response = await fetch('https://alpbot.onrender.com/', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ prompt: fullPrompt })
