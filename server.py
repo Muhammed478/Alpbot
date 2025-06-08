@@ -1,21 +1,14 @@
+import os
 import requests
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
-# --- API Anahtar Listesi ---
-# Verdiğin 10 anahtarı buraya bir liste olarak ekledik.
-API_KEYS = [
-    "AIzaSyDMwzjtTvl3w--jZchm6l2cw0zuaMiOMWw",
-    "AIzaSyDnqVmpVfIvpN9yrOk6p3nTAFLVOii8oxU",
-    "AIzaSyDmFE55RyzrYsoD-VvkqLzzGaZevy3Td20",
-    "AIzaSyC0m7ckBDNwxXItcYKEFnAtUU0_z0rzo3I",
-    "AIzaSyCG3HXWUnzPBOfluYbJu1pIq5-ayWuVfPg",
-    "AIzaSyD9RcylQpGFDPSf1NFrppxUOjtdhiJCSjk",
-    "AIzaSyCnCJdRuxY0tVWX6QUX6elDJcG0_zM9ysk",
-    "AIzaSyDa8CQJlju3MCsRBKFFOcY1y2HfWeKtoWk",
-    "AIzaSyAyRgQ2kTUHlEWOtTtJVnbEV0-N6ZCR8KI",
-    "AIzaSyBq3KtbHqScFBUhr186UxP61t0NCbfmjsI"
-]
+# --- API Anahtar Listesi (GÜVENLİ YÖNTEM) ---
+# Anahtarları Render'daki güvenli kasadan (Environment Variables) çekiyoruz.
+# Render'a 'ALL_API_KEYS' adıyla kaydettiğimiz, virgülle ayrılmış upuzun metni
+# alıp, .split(',') komutuyla eskisi gibi bir Python listesine çeviriyoruz.
+keys_string = os.getenv("ALL_API_KEYS", "") 
+API_KEYS = keys_string.split(',')
 
 # Hangi anahtarda kaldığımızı hatırlamak için bir sayaç
 current_key_index = 0
@@ -35,7 +28,8 @@ def handle_generation():
         return jsonify({"error": "Prompt metni boş olamaz."}), 400
 
     # Anahtar listesindeki tüm anahtarları denemek için bir döngü başlatıyoruz
-    for i in range(len(API_KEYS)):
+    # Döngünün en fazla anahtar sayısı kadar dönmesini sağlıyoruz ki sonsuz döngüye girmesin.
+    for _ in range(len(API_KEYS)):
         # Sıradaki anahtarı seçiyoruz
         key_to_try = API_KEYS[current_key_index]
         print(f"Anahtar #{current_key_index + 1} deneniyor...")
@@ -73,8 +67,10 @@ def handle_generation():
     return jsonify({"error": "Tüm API anahtarları başarısız oldu. Lütfen anahtarları kontrol edin."}), 500
 
 
+# Not: Bu aşağıdaki bölüm, Render gibi profesyonel servisler tarafından kullanılmaz.
+# Onlar, bizim "Start Command" olarak verdiğimiz `gunicorn server:app` komutunu kullanır.
+# Bu blok, sadece kodu kendi bilgisayarında test etmek istersen diye duruyor.
 if __name__ == '__main__':
-    print("Akıllı ve Güvenli Sunucu başlatılıyor...")
-    print(f"Toplam {len(API_KEYS)} API anahtarı yüklendi ve güvende.")
+    print("Sunucu geliştirme modunda başlatılıyor...")
+    # Render bu satırı çalıştırmayacak, Gunicorn'u kullanacak.
     app.run(port=5000)
-
